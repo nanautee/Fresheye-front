@@ -398,6 +398,11 @@ export default function Chat() {
               <p className="font-mono text-[11px] text-muted">
                 {new Date(h.date).toLocaleDateString()} · {short(h.wallet)} · {h.question}
               </p>
+              {h.answer && (
+                <p className="mt-1 font-mono text-[11px] text-text/70 line-clamp-3 whitespace-pre-wrap">
+                  {h.answer}
+                </p>
+              )}
             </div>
           ))}
         </div>
