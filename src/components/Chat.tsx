@@ -7,7 +7,14 @@ import {
   subscribe,
   unsubscribe,
   getHistory,
+  getSubscription,
+  getTiers,
+  createPayment,
+  getPayStatus,
   type HistoryRecord,
+  type SubscriptionInfo,
+  type Tier,
+  type PayCreateResponse,
 } from "@/lib/api";
 import { usePolling } from "@/hooks/usePolling";
 import Dashboard from "@/components/Dashboard";
@@ -49,6 +56,11 @@ export default function Chat() {
   const [history, setHistory] = useState<HistoryRecord[]>([]);
   const [showHistory, setShowHistory] = useState(false);
   const [showDashboard, setShowDashboard] = useState(false);
+  const [subInfo, setSubInfo] = useState<SubscriptionInfo | null>(null);
+  const [tiers, setTiers] = useState<Tier[]>([]);
+  const [showPayModal, setShowPayModal] = useState(false);
+  const [payData, setPayData] = useState<PayCreateResponse | null>(null);
+  const [payPoll, setPayPoll] = useState(false);
 
   const { result } = usePolling(jobId, busy);
 
@@ -67,7 +79,37 @@ export default function Chat() {
     } catch { /* ignore */ }
   }, []);
 
+  const loadSubInfo = useCallback(async () => {
+    if (!activeWallet) return;
+    try {
+      setSubInfo(await getSubscription(activeWallet));
+    } catch { /* ignore */ }
+  }, [activeWallet]);
+
   useEffect(() => { loadSubs(); loadHistory(); }, [loadSubs, loadHistory]);
+  useEffect(() => { loadSubInfo(); }, [loadSubInfo]);
+
+  useEffect(() => {
+    getTiers().then(setTiers).catch(() => {});
+  }, []);
+
+  // Poll payment status after creating a payment
+  useEffect(() => {
+    if (!payPoll || !activeWallet) return;
+    const iv = setInterval(async () => {
+      try {
+        const st = await getPayStatus(activeWallet);
+        if (st.status === "active") {
+          setPayPoll(false);
+          setShowPayModal(false);
+          setPayData(null);
+          loadSubInfo();
+          setMessages((m) => [...m, { role: "assistant", content: "✅ Подписка активирована! Можешь задавать вопросы." }]);
+        }
+      } catch { /* ignore */ }
+    }, 5000);
+    return () => clearInterval(iv);
+  }, [payPoll, activeWallet, loadSubInfo]);
 
   const connectPhantom = async () => {
     setError(null);
@@ -113,6 +155,17 @@ export default function Chat() {
 
   const isSubscribed = subs.includes(activeWallet);
 
+  const handlePay = async (tierId: string) => {
+    if (!connected) return;
+    try {
+      const data = await createPayment(activeWallet, tierId);
+      setPayData(data);
+      setPayPoll(true);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Payment failed");
+    }
+  };
+
   const submit = async (question: string) => {
     if (busy) return;
     if (!question.trim()) return;
@@ -128,8 +181,13 @@ export default function Chat() {
     try {
       const job = await createAnalysis({ wallet: activeWallet, question });
       setJobId(job.id);
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "Request failed");
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : "Request failed";
+      if (msg.includes("limit_reached") || msg.includes("402")) {
+        setShowPayModal(true);
+        loadSubInfo();
+      }
+      setError(msg);
       setBusy(false);
     }
   };
@@ -143,6 +201,7 @@ export default function Chat() {
     setBusy(false);
     setJobId(null);
     loadHistory();
+    loadSubInfo();
   }
 
   const isLooking =
@@ -158,7 +217,9 @@ export default function Chat() {
             <div>
               <p className="font-mono text-sm text-text">{short(wallet)}</p>
               <p className="font-mono text-[10px] uppercase tracking-widest text-muted">
-                phantom · connected
+                {subInfo && subInfo.tier !== "none"
+                  ? `${subInfo.tier} · ${subInfo.questions_left < 0 ? "∞" : subInfo.questions_left} questions left`
+                  : "phantom · connected"}
               </p>
             </div>
           </div>
@@ -244,6 +305,12 @@ export default function Chat() {
             {isSubscribed ? "✓ Subscribed · click to unsubscribe" : "🔔 Subscribe"}
           </button>
           <button
+            onClick={() => setShowPayModal(true)}
+            className="rounded-lg border border-accent/40 px-3 py-1.5 font-mono text-xs text-accent transition-colors hover:bg-accent hover:text-black"
+          >
+            ⚡ Upgrade
+          </button>
+          <button
             onClick={() => setShowDashboard(!showDashboard)}
             className="rounded-lg border border-[#222] px-3 py-1.5 font-mono text-xs text-muted transition-colors hover:border-accent/40 hover:text-text"
           >
@@ -255,6 +322,68 @@ export default function Chat() {
           >
             {showHistory ? "hide history" : "📜 history"}
           </button>
+        </div>
+      )}
+
+      {/* Payment Modal */}
+      {showPayModal && (
+        <div className="fade-up mt-3 rounded-xl border border-accent/30 bg-card/60 p-5 backdrop-blur-sm">
+          {payData ? (
+            <div className="text-center">
+              <p className="mb-3 font-satoshi text-sm font-medium text-text">
+                Send {payData.amount_sol} SOL to activate {payData.tier_id}
+              </p>
+              {payData.qr && (
+                <img src={payData.qr} alt="Solana Pay QR" className="mx-auto mb-3 h-48 w-48 rounded-lg border border-[#222]" />
+              )}
+              <p className="mb-1 font-mono text-[11px] text-muted">or copy address:</p>
+              <p className="mb-3 font-mono text-[11px] break-all text-text">{payData.recipient}</p>
+              <p className="mb-3 font-mono text-[10px] text-accent">
+                amount: {payData.amount_sol} SOL · memo: fresheye_{payData.tier_id}
+              </p>
+              <p className="animate-pulse font-mono text-[11px] text-muted">
+                Waiting for payment…
+              </p>
+              <button
+                onClick={() => { setShowPayModal(false); setPayData(null); setPayPoll(false); }}
+                className="mt-3 font-mono text-xs text-muted transition-colors hover:text-text"
+              >
+                cancel
+              </button>
+            </div>
+          ) : (
+            <div>
+              <div className="mb-3 flex items-center justify-between">
+                <p className="font-satoshi text-sm font-medium text-text">Choose a plan</p>
+                <button onClick={() => setShowPayModal(false)} className="font-mono text-xs text-muted hover:text-text">✕</button>
+              </div>
+              <p className="mb-4 font-mono text-[11px] text-muted">Pay SOL to your wallet, Solana Pay QR generated automatically</p>
+              <div className="grid gap-3">
+                {tiers.map((t) => (
+                  <button
+                    key={t.id}
+                    onClick={() => t.sol > 0 && handlePay(t.id)}
+                    disabled={t.sol === 0}
+                    className={`flex items-center justify-between rounded-lg border px-4 py-3 transition-colors ${
+                      t.sol === 0
+                        ? "border-[#222] bg-card/20 text-muted"
+                        : "border-accent/30 hover:border-accent hover:bg-accent/10"
+                    }`}
+                  >
+                    <div className="text-left">
+                      <p className="font-satoshi text-sm font-medium text-text">{t.name}</p>
+                      <p className="font-mono text-[11px] text-muted">
+                        {t.questions > 0 ? `${t.questions} questions` : t.days > 0 ? `${t.days} days unlimited` : "free"}
+                      </p>
+                    </div>
+                    <span className="font-mono text-sm font-medium text-accent">
+                      {t.sol === 0 ? "Free" : `${t.sol} SOL`}
+                    </span>
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       )}
 

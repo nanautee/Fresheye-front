@@ -133,3 +133,46 @@ export interface WalletAnalysis {
 export function getWalletAnalysis(address: string): Promise<WalletAnalysis> {
   return request<WalletAnalysis>(`/wallet/${encodeURIComponent(address)}`);
 }
+
+export interface SubscriptionInfo {
+  wallet: string;
+  tier: string;
+  questions_left: number;
+  expires_at?: string;
+  has_access: boolean;
+}
+
+export function getSubscription(wallet: string): Promise<SubscriptionInfo> {
+  return request<SubscriptionInfo>(`/subscription?wallet=${encodeURIComponent(wallet)}`);
+}
+
+export interface Tier {
+  id: string;
+  name: string;
+  sol: number;
+  questions: number;
+  days: number;
+}
+
+export function getTiers(): Promise<Tier[]> {
+  return request<Tier[]>("/tiers");
+}
+
+export interface PayCreateResponse {
+  url: string;
+  qr: string;
+  tier_id: string;
+  amount_sol: number;
+  recipient: string;
+}
+
+export function createPayment(wallet: string, tier_id: string): Promise<PayCreateResponse> {
+  return request<PayCreateResponse>("/pay/create", {
+    method: "POST",
+    body: JSON.stringify({ wallet, tier_id }),
+  });
+}
+
+export function getPayStatus(wallet: string): Promise<{ status: string; tier_id?: string; amount_sol?: number; subscription?: SubscriptionInfo }> {
+  return request(`/pay/status?wallet=${encodeURIComponent(wallet)}`);
+}
