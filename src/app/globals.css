@@ -1,0 +1,328 @@
+@import "tailwindcss";
+
+@theme {
+  /* Colors (kept from brand) */
+  --color-bg: #000000;
+  --color-card: #1a1a1a;
+  --color-card2: #222222;
+  --color-accent: #f5a623;
+  --color-accent2: #ff6b6b;
+  --color-profit: #4ecdc4;
+  --color-loss: #ff6b6b;
+  --color-text: #f0f0f0;
+  --color-muted: #7a7a7a;
+
+  /* Typography */
+  --font-satoshi: "Satoshi", "Inter", system-ui, sans-serif;
+  --font-inter: "Inter", system-ui, sans-serif;
+  --font-mono: ui-monospace, "Cascadia Code", "JetBrains Mono", Menlo, Consolas, monospace;
+}
+
+:root {
+  color-scheme: dark;
+}
+
+html,
+body {
+  background: #000;
+  color: var(--color-text);
+  font-family: var(--font-inter);
+  font-weight: 300;
+  -webkit-font-smoothing: antialiased;
+}
+
+::selection {
+  background: rgba(245, 166, 35, 0.3);
+  color: #fff;
+}
+
+h1,
+h2,
+h3,
+h4 {
+  font-family: var(--font-satoshi);
+}
+
+/* Numbers */
+.num {
+  font-family: var(--font-satoshi);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Terminal grid overlay */
+.bg-grid {
+  background-image:
+    linear-gradient(rgba(245, 166, 35, 0.035) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(245, 166, 35, 0.035) 1px, transparent 1px);
+  background-size: 46px 46px;
+  mask-image: radial-gradient(ellipse at 50% 38%, black 28%, transparent 76%);
+  -webkit-mask-image: radial-gradient(ellipse at 50% 38%, black 28%, transparent 76%);
+}
+
+/* Vignette for cosmic depth */
+.bg-vignette {
+  background: radial-gradient(ellipse at 50% 32%, transparent 38%, rgba(0, 0, 0, 0.88) 100%);
+}
+
+/* Faint golden nebula — cosmic dust clouds */
+.nebula {
+  background:
+    radial-gradient(ellipse at 18% 22%, rgba(245, 166, 35, 0.045), transparent 55%),
+    radial-gradient(ellipse at 82% 68%, rgba(245, 166, 35, 0.035), transparent 50%),
+    radial-gradient(ellipse at 62% 12%, rgba(245, 166, 35, 0.025), transparent 45%);
+  animation: nebula-drift 24s ease-in-out infinite;
+}
+
+@keyframes nebula-drift {
+  0%,
+  100% {
+    opacity: 0.75;
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+  50% {
+    opacity: 1;
+    transform: translate3d(1.5%, -1%, 0) scale(1.04);
+  }
+}
+
+/* === TECHNICAL EYE (line-based contours) === */
+.eye {
+  position: relative;
+  transition: transform 0.08s ease;
+}
+.eye.is-blink {
+  transform: scaleY(0.04);
+}
+
+/* Contour lines — thin golden arcs defining the eye shape */
+.contour {
+  position: absolute;
+  inset: 0;
+  border-radius: 50% / 72% 72% 28% 28%;
+  pointer-events: none;
+}
+.c-out {
+  inset: -6%;
+  border: 1px solid rgba(245, 166, 35, 0.14);
+}
+.c-main {
+  border: 1.5px solid rgba(245, 166, 35, 0.55);
+  box-shadow:
+    0 0 10px rgba(245, 166, 35, 0.10),
+    0 0 28px rgba(245, 166, 35, 0.05);
+}
+.c-in {
+  inset: 5%;
+  border: 1px solid rgba(245, 166, 35, 0.10);
+}
+
+/* Soft glow behind the whole eye */
+.eye-glow-soft {
+  position: absolute;
+  inset: -12%;
+  border-radius: 50%;
+  background: radial-gradient(
+    ellipse at 50% 50%,
+    rgba(245, 166, 35, 0.05) 0%,
+    transparent 60%
+  );
+  filter: blur(10px);
+  pointer-events: none;
+  animation: eye-breathe 7s ease-in-out infinite;
+}
+
+/* Iris — positioned slightly right of center, circular */
+.eye-iris {
+  position: absolute;
+  left: 52%;
+  top: 50%;
+  width: 28%;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  overflow: hidden;
+  transform: translate(-50%, -50%) translate(var(--px, 0), var(--py, 0));
+  box-shadow:
+    0 0 14px rgba(245, 166, 35, 0.18),
+    inset 0 0 14px rgba(0, 0, 0, 0.5);
+}
+
+/* Radial spokes */
+.iris-rad {
+  position: absolute;
+  inset: 0;
+  background: repeating-conic-gradient(
+    from 0deg at 50% 50%,
+    rgba(245, 166, 35, 0.42) 0 0.5deg,
+    transparent 0.5deg 9deg
+  );
+  animation: iris-spin 200s linear infinite;
+}
+
+/* Concentric rings */
+.iris-rings {
+  position: absolute;
+  inset: 0;
+  background: repeating-radial-gradient(
+    circle at 50% 50%,
+    rgba(245, 166, 35, 0.18) 0 1px,
+    transparent 1px 6px
+  );
+}
+
+/* Inner glow near pupil */
+.iris-glow {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  box-shadow: inset 0 0 18px 4px rgba(245, 166, 35, 0.18);
+}
+
+/* Pupil — solid dark */
+.eye-pupil {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 34%;
+  height: 34%;
+  margin: -17% 0 0 -17%;
+  border-radius: 50%;
+  background: #020c0b;
+  box-shadow: inset 0 0 6px rgba(0, 0, 0, 0.7);
+}
+
+/* Glints — golden, not white */
+.glint {
+  position: absolute;
+  border-radius: 50%;
+  pointer-events: none;
+}
+.glint-a {
+  right: 28%;
+  top: 28%;
+  width: 5%;
+  height: 6%;
+  background: rgba(245, 166, 35, 0.85);
+  box-shadow: 0 0 5px rgba(245, 166, 35, 0.5);
+}
+.glint-b {
+  left: 40%;
+  bottom: 34%;
+  width: 2.5%;
+  height: 3%;
+  background: rgba(245, 166, 35, 0.45);
+  box-shadow: 0 0 3px rgba(245, 166, 35, 0.3);
+}
+
+/* Corner ticks — small crosshair marks */
+.tick {
+  position: absolute;
+  background: rgba(245, 166, 35, 0.30);
+  pointer-events: none;
+}
+.tk-l {
+  left: -3%;
+  top: 50%;
+  width: 10px;
+  height: 1px;
+  transform: translateY(-50%);
+}
+.tk-r {
+  right: -3%;
+  top: 50%;
+  width: 10px;
+  height: 1px;
+  transform: translateY(-50%);
+}
+.tk-t {
+  top: -8%;
+  left: 50%;
+  width: 1px;
+  height: 8px;
+  transform: translateX(-50%);
+}
+.tk-b {
+  bottom: -8%;
+  left: 50%;
+  width: 1px;
+  height: 8px;
+  transform: translateX(-50%);
+}
+
+/* Eye breathing glow */
+@keyframes eye-breathe {
+  0%, 100% { opacity: 0.6; }
+  50% { opacity: 1; }
+}
+
+@keyframes iris-spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+/* --- Cosmic dust --- */
+@keyframes twinkle {
+  0%,
+  100% {
+    opacity: var(--o, 0.2);
+    transform: scale(1);
+  }
+  50% {
+    opacity: calc(var(--o, 0.2) * 0.15);
+    transform: scale(0.6);
+  }
+}
+
+@keyframes drift {
+  0%,
+  100% {
+    translate: 0 0;
+  }
+  50% {
+    translate: var(--dx, 0) var(--dy, 0);
+  }
+}
+
+/* Scanning line */
+@keyframes scan {
+  0% {
+    top: 0%;
+    opacity: 0.9;
+  }
+  50% {
+    opacity: 1;
+  }
+  100% {
+    top: 100%;
+    opacity: 0.9;
+  }
+}
+.scan-line {
+  animation: scan 1.1s linear infinite;
+}
+
+@keyframes fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+.fade-up {
+  animation: fade-up 0.25s ease-out both;
+}
+
+@keyframes pulse-dot {
+  0%,
+  100% {
+    opacity: 0.35;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+.pulse-dot {
+  animation: pulse-dot 1.6s ease-in-out infinite;
+}
