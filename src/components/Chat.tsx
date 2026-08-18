@@ -3,9 +3,6 @@
 import { useState, useEffect, useCallback } from "react";
 import {
   createAnalysis,
-  getSubscriptions,
-  subscribe,
-  unsubscribe,
   getHistory,
   getSubscription,
   getTiers,
@@ -52,7 +49,6 @@ export default function Chat() {
   const [jobId, setJobId] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [subs, setSubs] = useState<string[]>([]);
   const [history, setHistory] = useState<HistoryRecord[]>([]);
   const [showHistory, setShowHistory] = useState(false);
   const [showDashboard, setShowDashboard] = useState(false);
@@ -67,12 +63,6 @@ export default function Chat() {
   const activeWallet = wallet ?? (manual ? manualAddr.trim() : "");
   const connected = activeWallet.length > 0;
 
-  const loadSubs = useCallback(async () => {
-    try {
-      setSubs(await getSubscriptions(userId));
-    } catch { /* ignore */ }
-  }, []);
-
   const loadHistory = useCallback(async () => {
     try {
       setHistory(await getHistory(undefined, 10));
@@ -86,7 +76,7 @@ export default function Chat() {
     } catch { /* ignore */ }
   }, [activeWallet]);
 
-  useEffect(() => { loadSubs(); loadHistory(); }, [loadSubs, loadHistory]);
+  useEffect(() => { loadHistory(); }, [loadHistory]);
   useEffect(() => { loadSubInfo(); }, [loadSubInfo]);
 
   useEffect(() => {
@@ -138,22 +128,6 @@ export default function Chat() {
     setManual(false);
     setManualAddr("");
   };
-
-  const handleSubscribe = async () => {
-    if (!connected) return;
-    try {
-      if (isSubscribed) {
-        await unsubscribe(userId, activeWallet);
-      } else {
-        await subscribe(userId, activeWallet);
-      }
-      await loadSubs();
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "Action failed");
-    }
-  };
-
-  const isSubscribed = subs.includes(activeWallet);
 
   const handlePay = async (tierId: string) => {
     if (!connected) return;
@@ -291,19 +265,9 @@ export default function Chat() {
         </div>
       )}
 
-      {/* Subscribe + Dashboard buttons */}
+      {/* Upgrade + Dashboard buttons */}
       {connected && (
         <div className="mt-3 flex items-center gap-3">
-          <button
-            onClick={handleSubscribe}
-            className={`rounded-lg px-3 py-1.5 font-mono text-xs transition-colors ${
-              isSubscribed
-                ? "border border-profit/30 text-profit/60 hover:border-loss/40 hover:text-loss"
-                : "border border-accent/40 text-accent hover:bg-accent hover:text-black"
-            }`}
-          >
-            {isSubscribed ? "✓ Subscribed · click to unsubscribe" : "🔔 Subscribe"}
-          </button>
           <button
             onClick={() => setShowPayModal(true)}
             className="rounded-lg border border-accent/40 px-3 py-1.5 font-mono text-xs text-accent transition-colors hover:bg-accent hover:text-black"
