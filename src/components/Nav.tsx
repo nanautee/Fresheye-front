@@ -1,20 +1,6 @@
 "use client";
 
 import Link from "next/link";
-import { useState, useEffect } from "react";
-
-interface SolanaProvider {
-  isPhantom?: boolean;
-  publicKey: { toString(): string } | null;
-  connect(opts?: { onlyIfTrusted?: boolean }): Promise<{ publicKey: { toString(): string } }>;
-  disconnect(): Promise<void>;
-}
-
-declare global {
-  interface Window {
-    solana?: SolanaProvider;
-  }
-}
 
 const short = (a: string) => `${a.slice(0, 4)}...${a.slice(-4)}`;
 
@@ -41,22 +27,40 @@ export default function Nav({
 }: NavProps) {
   return (
     <header className="sticky top-0 z-40 border-b border-[#111] bg-black/80 backdrop-blur-xl">
-      <div className="mx-auto flex h-16 max-w-4xl items-center justify-between px-6">
-        <Link href="/" className="group flex items-center gap-3">
+      <div className="mx-auto grid h-16 max-w-5xl grid-cols-3 items-center px-6">
+        {/* Logo — left */}
+        <Link href="/" className="group flex items-center gap-3 justify-start">
           <div className="relative">
             <img
               src="/logo.png"
               alt="Fresh Eye"
-              className="h-9 w-auto rounded-full object-contain transition-all duration-300 group-hover:scale-110"
+              className="h-10 w-auto rounded-full object-contain transition-all duration-300 group-hover:scale-110"
             />
-            <div className="absolute -inset-1 rounded-full bg-accent/10 blur-md opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
+            <div className="absolute -inset-2 rounded-full bg-accent/10 blur-lg opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
           </div>
-          <span className="font-satoshi text-base font-semibold tracking-tight text-text">
+          <span className="font-satoshi text-lg font-bold tracking-tight text-text">
             Fresh<span className="text-accent">Eye</span>
           </span>
         </Link>
 
-        <div className="flex items-center gap-2">
+        {/* Nav — center */}
+        <nav className="flex items-center justify-center gap-1">
+          <Link
+            href="/"
+            className="rounded-md px-3 py-1.5 font-mono text-xs text-muted transition-colors hover:bg-[#111] hover:text-text"
+          >
+            Analysis
+          </Link>
+          <Link
+            href="/top-traders"
+            className="rounded-md px-3 py-1.5 font-mono text-xs text-muted transition-colors hover:bg-[#111] hover:text-text"
+          >
+            Top Traders
+          </Link>
+        </nav>
+
+        {/* Actions — right */}
+        <div className="flex items-center justify-end gap-2">
           {wallet && hasStarted && (
             <>
               <button
@@ -73,7 +77,7 @@ export default function Nav({
                     : "border-[#222] text-muted hover:border-accent/30 hover:text-text"
                 }`}
               >
-                📊 Dashboard
+                📊
               </button>
               <button
                 onClick={onToggleHistory}
@@ -83,14 +87,14 @@ export default function Nav({
                     : "border-[#222] text-muted hover:border-accent/30 hover:text-text"
                 }`}
               >
-                📜 History
+                📜
               </button>
               <div className="mx-1 h-5 w-px bg-[#222]" />
             </>
           )}
 
           {wallet ? (
-            <div className="flex items-center gap-2.5">
+            <div className="flex items-center gap-2">
               <div className="flex items-center gap-2 rounded-lg border border-[#1a1a1a] bg-card/30 px-3 py-1.5">
                 <span className="h-1.5 w-1.5 rounded-full bg-profit" />
                 <span className="font-mono text-xs text-text">{short(wallet)}</span>
