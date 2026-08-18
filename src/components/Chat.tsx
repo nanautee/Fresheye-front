@@ -58,9 +58,11 @@ export default function Chat({ wallet, onWalletChange, onHasStarted, showDashboa
   const [payPoll, setPayPoll] = useState(false);
   const [showPayModal, setShowPayModal] = useState(false);
   const [startedNotified, setStartedNotified] = useState(false);
+  const [elapsed, setElapsed] = useState(0);
 
   const chatEndRef = useRef<HTMLDivElement>(null);
   const { result } = usePolling(jobId, busy);
+  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const hasStarted = messages.length > 0;
   const activeWallet = wallet ?? (manual ? manualAddr.trim() : "");
@@ -72,6 +74,18 @@ export default function Chat({ wallet, onWalletChange, onHasStarted, showDashboa
     window.addEventListener("fresheye:upgrade", handler);
     return () => window.removeEventListener("fresheye:upgrade", handler);
   }, []);
+
+  // Timer for elapsed seconds while analyzing
+  useEffect(() => {
+    if (busy) {
+      setElapsed(0);
+      timerRef.current = setInterval(() => setElapsed((e) => e + 1), 1000);
+    } else if (timerRef.current) {
+      clearInterval(timerRef.current);
+      timerRef.current = null;
+    }
+    return () => { if (timerRef.current) clearInterval(timerRef.current); };
+  }, [busy]);
 
   // Auto-scroll on new messages
   useEffect(() => {
