@@ -3,23 +3,24 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import {
   createAnalysis,
-  getHistory,
   getSubscription,
   getTiers,
   createPayment,
   getPayStatus,
-  type HistoryRecord,
   type SubscriptionInfo,
   type Tier,
   type PayCreateResponse,
 } from "@/lib/api";
 import { usePolling } from "@/hooks/usePolling";
-import Dashboard from "@/components/Dashboard";
 
 interface Message {
   role: "user" | "assistant";
   content: string;
 }
+
+const QUICK = ["Review my strategy", "Find mistakes", "Assess risk"];
+
+const short = (a: string) => `${a.slice(0, 4)}...${a.slice(-4)}`;
 
 interface SolanaProvider {
   isPhantom?: boolean;
@@ -33,11 +34,6 @@ declare global {
     solana?: SolanaProvider;
   }
 }
-
-const QUICK = ["Review my strategy", "Find mistakes", "Assess risk"];
-
-const short = (a: string) => `${a.slice(0, 4)}...${a.slice(-4)}`;
-const userId = 1;
 
 interface ChatProps {
   wallet: string | null;
@@ -56,12 +52,19 @@ export default function Chat({ wallet, onWalletChange, onHasStarted, showDashboa
   const [jobId, setJobId] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [history, setHistory] = useState<HistoryRecord[]>([]);
   const [subInfo, setSubInfo] = useState<SubscriptionInfo | null>(null);
   const [tiers, setTiers] = useState<Tier[]>([]);
   const [payData, setPayData] = useState<PayCreateResponse | null>(null);
   const [payPoll, setPayPoll] = useState(false);
   const [showPayModal, setShowPayModal] = useState(false);
+  const [startedNotified, setStartedNotified] = useState(false);
+
+  const chatEndRef = useRef<HTMLDivElement>(null);
+  const { result } = usePolling(jobId, busy);
+
+  const hasStarted = messages.length > 0;
+  const activeWallet = wallet ?? (manual ? manualAddr.trim() : "");
+  const connected = activeWallet.length > 0;
 
   // Listen for upgrade trigger from Nav
   useEffect(() => {
@@ -69,15 +72,6 @@ export default function Chat({ wallet, onWalletChange, onHasStarted, showDashboa
     window.addEventListener("fresheye:upgrade", handler);
     return () => window.removeEventListener("fresheye:upgrade", handler);
   }, []);
-
-  const hasStarted = messages.length > 0;
-  const chatEndRef = useRef<HTMLDivElement>(null);
-  const inputRef = useRef<HTMLTextAreaElement>(null);
-
-  const { result } = usePolling(jobId, busy);
-
-  const activeWallet = wallet ?? (manual ? manualAddr.trim() : "");
-  const connected = activeWallet.length > 0;
 
   // Auto-scroll on new messages
   useEffect(() => {
@@ -88,14 +82,11 @@ export default function Chat({ wallet, onWalletChange, onHasStarted, showDashboa
 
   // Notify parent when started
   useEffect(() => {
-    if (hasStarted && onHasStarted) onHasStarted();
-  }, [hasStarted, onHasStarted]);
-
-  const loadHistory = useCallback(async () => {
-    try {
-      setHistory(await getHistory(undefined, 10));
-    } catch { /* ignore */ }
-  }, []);
+    if (hasStarted && !startedNotified && onHasStarted) {
+      onHasStarted();
+      setStartedNotified(true);
+    }
+  }, [hasStarted, startedNotified, onHasStarted]);
 
   const loadSubInfo = useCallback(async () => {
     if (!activeWallet) return;
@@ -104,7 +95,6 @@ export default function Chat({ wallet, onWalletChange, onHasStarted, showDashboa
     } catch { /* ignore */ }
   }, [activeWallet]);
 
-  useEffect(() => { loadHistory(); }, [loadHistory]);
   useEffect(() => { loadSubInfo(); }, [loadSubInfo]);
 
   useEffect(() => {
@@ -129,6 +119,21 @@ export default function Chat({ wallet, onWalletChange, onHasStarted, showDashboa
     return () => clearInterval(iv);
   }, [payPoll, activeWallet, loadSubInfo]);
 
+  // Handle completed results
+  useEffect(() => {
+    if (result && (result.status === "done" || result.status === "error")) {
+      const content = result.status === "done" ? result.answer! : (result.error ?? "Error");
+      setMessages((m) => {
+        const last = m[m.length - 1];
+        if (last && last.role === "assistant" && last.content === content) return m;
+        return [...m, { role: "assistant", content }];
+      });
+      setBusy(false);
+      setJobId(null);
+      loadSubInfo();
+    }
+  }, [result, loadSubInfo]);
+
   const connectPhantom = async () => {
     setError(null);
     const provider = window.solana;
@@ -142,7 +147,6 @@ export default function Chat({ wallet, onWalletChange, onHasStarted, showDashboa
       const res = await provider.connect();
       onWalletChange(res.publicKey.toString());
       setManual(false);
-      setManual(false);
       setError(null);
     } catch {
       setError("Connection cancelled.");
@@ -153,8 +157,8 @@ export default function Chat({ wallet, onWalletChange, onHasStarted, showDashboa
 
   const disconnect = async () => {
     try { await window.solana?.disconnect(); } catch { /* ignore */ }
-      onWalletChange(null);
-      setManual(false);
+    onWalletChange(null);
+    setManual(false);
     setManualAddr("");
   };
 
@@ -194,18 +198,6 @@ export default function Chat({ wallet, onWalletChange, onHasStarted, showDashboa
       setBusy(false);
     }
   };
-
-  if (result && (result.status === "done" || result.status === "error")) {
-    const content = result.status === "done" ? result.answer! : (result.error ?? "Error");
-    const last = messages[messages.length - 1];
-    if (!last || last.role !== "assistant" || last.content !== content) {
-      setMessages((m) => [...m, { role: "assistant", content }]);
-    }
-    setBusy(false);
-    setJobId(null);
-    loadHistory();
-    loadSubInfo();
-  }
 
   const isLooking = busy || (!!(result && (result.status === "queued" || result.status === "processing")));
 
@@ -366,28 +358,7 @@ export default function Chat({ wallet, onWalletChange, onHasStarted, showDashboa
       {/* Dashboard */}
       {showDashboard && (
         <div className="mb-4">
-          <Dashboard wallet={activeWallet} />
-        </div>
-      )}
-
-      {/* History */}
-      {showHistory && history.length > 0 && (
-        <div className="mb-4 max-h-48 overflow-y-auto rounded-2xl border border-[#1a1a1a] bg-card/20 p-4">
-          <p className="mb-2 font-mono text-[10px] uppercase tracking-widest text-muted">
-            recent analyses
-          </p>
-          {history.map((h, i) => (
-            <div key={i} className="border-b border-[#111] py-2.5 last:border-0">
-              <p className="font-mono text-[11px] text-muted">
-                {new Date(h.date).toLocaleDateString()} · {short(h.wallet)} · {h.question}
-              </p>
-              {h.answer && (
-                <p className="mt-1 font-mono text-[11px] text-text/60 line-clamp-2 whitespace-pre-wrap">
-                  {h.answer}
-                </p>
-              )}
-            </div>
-          ))}
+          <p className="font-mono text-xs text-muted">Dashboard coming soon…</p>
         </div>
       )}
 
@@ -524,7 +495,7 @@ function PayModal({
           <p className="mb-1 font-mono text-[11px] text-muted">or copy address:</p>
           <p className="mb-2 font-mono text-[11px] break-all text-text">{payData.recipient}</p>
           <p className="mb-4 font-mono text-[10px] text-accent">
-            amount: {payData.amount_sol} SOL · memo: fresheye_{payData.tier_id}
+            amount: {payData.amount_sol} SOL
           </p>
           <div className="flex items-center justify-center gap-2">
             <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-accent" />

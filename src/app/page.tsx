@@ -12,7 +12,7 @@ export default function Home() {
   const [showHistory, setShowHistory] = useState(false);
 
   const handleDisconnect = useCallback(async () => {
-    try { await window.solana?.disconnect(); } catch { /* */ }
+    try { await (window as any).solana?.disconnect(); } catch { /* */ }
     setWallet(null);
     window.location.reload();
   }, []);
