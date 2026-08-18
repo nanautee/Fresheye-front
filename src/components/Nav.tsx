@@ -34,7 +34,7 @@ export default function Nav({
             <img
               src="/logo.png"
               alt="Fresh Eye"
-              className="h-10 w-auto rounded-full object-contain transition-all duration-300 group-hover:scale-110"
+              className="h-7 w-auto rounded-full object-contain transition-all duration-300 group-hover:scale-110"
             />
             <div className="absolute -inset-2 rounded-full bg-accent/10 blur-lg opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
           </div>
