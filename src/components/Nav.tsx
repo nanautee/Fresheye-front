@@ -51,7 +51,7 @@ export default function Nav({
               alt="Fresh Eye - AI crypto strategy analyst | Product Hunt"
               width="200"
               height="43"
-              src="https://api.producthunt.com/widgets/embed-image/v1/featured.svg?post_id=PLACEHOLDER&utm_source=badge-featured&utm_medium=badge&utm_campaign=badge-fresh-eye"
+              src="https://api.producthunt.com/widgets/embed-image/v1/featured.svg?post_id=1227073&utm_source=badge-featured&utm_medium=badge&utm_campaign=badge-fresh-eye"
               className="h-[43px] w-auto"
             />
           </a>
