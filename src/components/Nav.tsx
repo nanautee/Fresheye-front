@@ -48,11 +48,11 @@ export default function Nav({
             className="ml-2 hidden sm:block opacity-80 transition-opacity hover:opacity-100"
           >
             <img
-              alt="Fresh Eye - AI-powered crypto strategy analyst | Product Hunt"
-              width="140"
-              height="30"
-              src="https://api.producthunt.com/widgets/embed-image/v1/featured.svg?post_id=PLACEHOLDER&utm_source=badge-featured&utm_medium=badge&utm_campaign=badge-fresh-eye&t=1"
-              className="h-[30px] w-auto"
+              alt="Fresh Eye - AI crypto strategy analyst | Product Hunt"
+              width="200"
+              height="43"
+              src="https://api.producthunt.com/widgets/embed-image/v1/featured.svg?post_id=PLACEHOLDER&utm_source=badge-featured&utm_medium=badge&utm_campaign=badge-fresh-eye"
+              className="h-[43px] w-auto"
             />
           </a>
         </Link>
