@@ -41,6 +41,20 @@ export default function Nav({
           <span className="font-satoshi text-lg font-bold tracking-tight text-text">
             Fresh<span className="text-accent">Eye</span>
           </span>
+          <a
+            href="https://www.producthunt.com/posts/fresh-eye?embed=true&utm_source=badge-featured&utm_medium=badge&utm_campaign=badge-fresh-eye"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="ml-2 hidden sm:block opacity-80 transition-opacity hover:opacity-100"
+          >
+            <img
+              alt="Fresh Eye - AI-powered crypto strategy analyst | Product Hunt"
+              width="140"
+              height="30"
+              src="https://api.producthunt.com/widgets/embed-image/v1/featured.svg?post_id=PLACEHOLDER&utm_source=badge-featured&utm_medium=badge&utm_campaign=badge-fresh-eye&t=1"
+              className="h-[30px] w-auto"
+            />
+          </a>
         </Link>
 
         {/* Nav — center */}
